@@ -1,0 +1,69 @@
+The LLVM instructions:
+    ret
+    call
+    add
+    sub
+    mul
+    sdiv
+    icmp
+    br
+    phi
+
+The x86 instructions:
+    ret
+    call
+    add
+    sub
+    mul
+    div
+    cmp
+    j{g,ge,l,le,ne,e,mp}
+    leave
+    push
+    pop
+    mov
+    int
+
+To deal with:
+ - At a phi, you need to deal with operands that don't yet have slots.
+ - 
+
+
+When I encounter a batch of phi nodes:
+    Acquire a slot for each phi node in the batch.
+    Make a label for each incoming edge to the batch.
+        - That is, make a label for each place you could have come from (as long as the phi node as a value for it)
+    Make a "phi_done" label
+    For each of those labels:
+        insert it.
+        insert code that movs the correct stuff into each acquired phi node slot
+        jump to phi_done
+    insert phi_done
+
+
+Ideas:
+    Acquire a slot that works for everyone.
+        At each jump that goes to a phi batch, back up the slot state
+        When you encounter a phi node, use placeholder slots for the values if they haven't been encountered yet.
+        Then, on a second pass, acquire the best slot that fits in all backups that jump to this phi batch
+
+    Or just acquire a slot for the new stuff if you haven't seen it yet.
+        This doesn't work because you might have something like this:
+
+            start:
+                jump to low_label or lower_label
+
+            phi_label:
+                phi [low_label 1] [lower_label 2]
+                ret
+
+            low_label:
+                jump to phi_label
+
+            lower_label:
+                jump to phi_label
+
+        In this scenario, low_label and lower_label are unreachable from phi_label.
+        Thus, if we just acquire a slot at phi_label, we would free it by the time we encounter low_label and lower_label
+
+    I think the solution is to traverse the blocks in depth-first order, and when you hit a block with a phi node (even if you've already seen it) you fill in that block's phi node slots for your incoming values.

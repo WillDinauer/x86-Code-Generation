@@ -1,0 +1,8 @@
+
+Here are the correct outcomes for the 5 provided tests:
+
+fib_test.ll: 89
+phi_test.ll: 4
+simple_phi_test.ll: 238
+simple_test.ll: 3
+stack_test.ll: 26
